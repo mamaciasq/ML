@@ -1,0 +1,81 @@
+---
+title: "Taller 3 ML"
+output: html_notebook
+---
+
+## Librerías necesarias
+```{r, message=FALSE}
+library(readxl)
+library(MASS)
+library(car)
+library(zoo)
+library(lmtest)
+library(leaps)
+library(ridge)
+library(DT)
+```
+
+## Lectura de datos
+```{r}
+Dataset <- read_excel("data-table-B2.xlsx")
+```
+
+## Ajuste de modelo lineal
+```{r}
+RegModel.1 <- lm(y~x1+x2+x3+x4+x5, data=Dataset)
+summary(RegModel.1)
+```
+
+## Estadísticas de observación
+```{r}
+Dataset<- within(Dataset, {
+  fitted.RegModel.1 <- fitted(RegModel.1)
+  residuals.RegModel.1 <- residuals(RegModel.1)
+  rstudent.RegModel.1 <- rstudent(RegModel.1)
+  hatvalues.RegModel.1 <- hatvalues(RegModel.1)
+  cooks.distance.RegModel.1 <- cooks.distance(RegModel.1)
+  obsNumber <- 1:nrow(Dataset) 
+})
+datatable(Dataset)
+```
+
+
+## Intervalo de confianza de las estimaciones
+```{r}
+confint(RegModel.1, level=0.95)
+```
+
+## Factores de inflación de varianza
+```{r}
+vif(RegModel.1)
+```
+
+## Correlaciones de parámetros estimados
+```{r}
+round(cov2cor(vcov(RegModel.1)), 3)
+```
+
+## Test de Durbin-Watson para chequear correlación
+```{r}
+dwtest(y ~ x1 + x2 + x3 + x4 + x5, alternative="greater", data=Dataset)
+```
+
+## Gráficos
+```{r}
+oldpar <- par(oma=c(0,0,3,0), mfrow=c(2,2))
+plot(RegModel.1)
+par(oldpar)
+par(mfrow=c(1,1))
+qqPlot(RegModel.1, simulate=TRUE, id.method="y", id.n=2)
+crPlots(RegModel.1, span=0.5)
+avPlots(RegModel.1, id.method="mahal", id.n=2)
+influencePlot(RegModel.1, id.method="noteworthy", id.n=2)
+```
+
+## Selección de variables
+```{r, message=FALSE}
+attach(Dataset)
+vx = cbind(x1, x2, x3, x4, x5)
+leaps(vx,y,int=T, method="Cp")
+leaps(vx,y,int=T, method="adjr2")
+```
