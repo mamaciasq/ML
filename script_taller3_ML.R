@@ -1,63 +1,89 @@
-# Importación de librerías
-library(tidyverse)
+# Código Final
+
+# Lectura de datos
 library(readxl)
+library(tidyverse)
 library(MASS)
 library(zoo)
 library(lmtest)
+library(xtable)
 source("macros_ML.R")
-
-# Lectura de datos
-data <- read_excel("data-table-B2.xlsx")
-attach(data)
-
+Dataset <- read_excel("data-table-B2.xlsx")
 
 # Correlación de Pearson simples
-cor(data)
-pairs(data)
-pairs(data[,-1])
+cor(Dataset)
+pairs(Dataset)
 
-# Modelamiento
-fit <- lm(y~1+x1+x2+x3+x4+x5, data)
-summary(fit)
-# Modelo ajustado
-fit
+
+# Ajuste de modelo lineal
+RegModel.1 <- lm(y~x1+x2+x3+x4+x5, data=Dataset)
+summary(RegModel.1)
+RegModel.1
+anova(RegModel.1)
+
+# Análisis de residuales
+
+# Estadísticas de observación
+Dataset<- within(Dataset, {
+  fitted.RegModel.1 <- fitted(RegModel.1)
+  residuals.RegModel.1 <- residuals(RegModel.1)
+  rstudent.RegModel.1 <- rstudent(RegModel.1)
+  hatvalues.RegModel.1 <- hatvalues(RegModel.1)
+  cooks.distance.RegModel.1 <- cooks.distance(RegModel.1)
+  obsNumber <- 1:nrow(Dataset) 
+})
+View(Dataset)
+
+# Gráficos de residuales
 par(mfrow=c(2,2))
-plot(fit)
-
-# Correlaciones de Pearson simplesmediante función
-par(mar=c(4,4,2,2))
-Correlaciones(fit,3,2,1,"")
-
-# Correlaciones parciales
-Correlaciones.parcial(fit,3,2,1,"")
-
-# Búsqueda del "mejor" modelo
-ajuste.normal(fit,5)
-ajuste.normal(fit,4)
-ajuste.normal(fit,3)
-ajuste.normal(fit,2)
-ajuste.normal(fit,1)
-fit1 <- lm(y ~ -1+x1+x2+x3+x4+x5, data)
-summary(fit1)
-vcov(fit1)
-fitted(fit1)
-qt(1-0.05/2,24)
-qt(1-0.01/2,24)
-qt(1-0.1/2,24)
+plot(RegModel.1)
 
 # Identificando puntos de alto leverage
 par(mfrow=c(1,1))
-Leverage.normal(fit1,1,"")
+Leverage.normal(RegModel.1,3,"")
 
 # Residuos estandarizados
-Residuos.normal(fit1,1,"")
+Residuos.normal(RegModel.1,1,"")
 
 # QQ Plot con sus bandas de confianza
-qqplot.normal(fit1,500,0.01,1,"")
+qqplot.normal(RegModel.1,10000,0.01,1,"")
 
 # Gráfico de distancia de Cook
 par(mfrow=c(3,2))
-Influence.normal(fit1,3,2,1,"")
-bptest(fit1)
-dwtest(fit1)
+Influence.normal(RegModel.1,3,2,1,"")
 
+# Intervalos de confianza de las estimaciones
+library(MASS)
+confint(RegModel.1, level=0.95)
+
+# Factores de inflación de varianza
+library(car)
+vif(RegModel.1)
+round(cov2cor(vcov(RegModel.1)), 3) # Correlations of parameter estimates
+
+# Test de heterocedasticidad y autocorrelación
+shapiro.test(RegModel.1)
+dwtest(RegModel.1)
+
+
+# Test de Durbin-Watson para chequear correlación
+library(zoo)
+library(lmtest)
+dwtest(y ~ x1 + x2 + x3 + x4, alternative="greater", data=Dataset)
+
+# Gráficos
+oldpar <- par(oma=c(0,0,3,0), mfrow=c(2,2))
+plot(RegModel.1)
+par(oldpar)
+par(mfrow=c(1,1))
+qqPlot(RegModel.1, simulate=TRUE, id.method="y", id.n=2)
+crPlots(RegModel.1, span=0.5)
+avPlots(RegModel.1, id.method="mahal", id.n=2)
+influencePlot(RegModel.1, id.method="noteworthy", id.n=2)
+
+# Selección de variables
+library(leaps)
+attach(Dataset)
+vx = cbind(x1, x2, x3, x4, x5)
+leaps(vx,y,int=T, method="Cp")
+leaps(vx,y,int=T, method="adjr2")
