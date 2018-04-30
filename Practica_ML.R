@@ -49,11 +49,18 @@ attach(Dataset)
 vx = cbind(x1, x2, x3, x4)
 leaps(vx,y,int=T, method="Cp")
 leaps(vx,y,int=T, method="adjr2")
+AIC(RegModel.1)
+
+# Ajusto modelo sin x3 y reviso RCuadrado, RCUadradoAjustado, AIC y BIC
+RegModel2 <- lm(y~x1+x2+x4, data=Dataset)
+summary(RegModel2)
+AIC(RegModel2)
+BIC(RegModel2)
 
 # Regresión Ridge
 
 # Lectura de datos
-hald <- read_excel("~/GitHub/Practica_ML/hald.XLS")
+hald <- read_excel("example-data//hald.XLS")
 
 # Ajuste de modelo
 RegModel.1 <- lm(y~x1+x2+x3+x4, data=hald)
